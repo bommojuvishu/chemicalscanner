@@ -14,4 +14,12 @@
         android:divider="@android:color/transparent"
         />
 
+    <com.github.ybq.android.spinkit.SpinKitView
+        android:layout_centerInParent="true"
+        android:id="@+id/spin_kit"
+        style="@style/SpinKitView.Large.Circle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:SpinKit_Color="#FF03DAC5" />
+
 </RelativeLayout>

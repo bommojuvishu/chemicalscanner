@@ -16,8 +16,13 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.github.ybq.android.spinkit.sprite.Sprite;
+import com.github.ybq.android.spinkit.style.DoubleBounce;
+import com.github.ybq.android.spinkit.style.Wave;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,11 +48,19 @@ public class ingredients extends AppCompatActivity {
     double score = 0;
     AsyncTaskRunner runner = new AsyncTaskRunner();
 
+    ProgressBar progressBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ingredients);
+
+
+        progressBar = (ProgressBar)findViewById(R.id.spin_kit);
+        Sprite CubeGrid = new Wave();
+        progressBar.setIndeterminateDrawable(CubeGrid);
+
+
 
 
         listView = (ListView) findViewById(R.id.listView);
@@ -229,6 +242,7 @@ public class ingredients extends AppCompatActivity {
 
 
             listView.setAdapter(customAdapter);
+            progressBar.setVisibility(View.INVISIBLE);
 
         }
 

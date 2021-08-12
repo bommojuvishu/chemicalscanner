@@ -1,9 +1,11 @@
 package com.hackathon591.chemicalscanner;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.media.ExifInterface;
@@ -15,10 +17,14 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.graphics.Matrix;
+import android.widget.ProgressBar;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.camerakit.CameraKitView;
+import com.github.ybq.android.spinkit.sprite.Sprite;
+import com.github.ybq.android.spinkit.style.Wave;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
@@ -32,6 +38,11 @@ import com.google.mlkit.vision.text.Text;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
 import com.google.mlkit.vision.text.TextRecognizerOptions;
+import com.karumi.dexter.Dexter;
+import com.karumi.dexter.MultiplePermissionsReport;
+import com.karumi.dexter.PermissionToken;
+import com.karumi.dexter.listener.PermissionRequest;
+import com.karumi.dexter.listener.multi.MultiplePermissionsListener;
 
 
 import java.io.File;
@@ -40,6 +51,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import pub.devrel.easypermissions.EasyPermissions;
 
 //public class MainActivity extends AppCompatActivity {
 //
@@ -54,9 +67,11 @@ public class MainActivity extends AppCompatActivity {
 
     // One Button
     Button BSelectImage, BCaptureImage ,Rotate,Process;
-
-    // One Preview Image
     ImageView IVPreviewImage;
+    private CameraKitView cameraKitView;
+    Button cameraBtn;
+
+
     Bitmap bitmap;
 
     // constant to compare
@@ -69,12 +84,12 @@ public class MainActivity extends AppCompatActivity {
 
     FirebaseDatabase database = FirebaseDatabase.getInstance();
 
+    ProgressBar progressBar;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-
 
         // register the UI widgets with their appropriate IDs
         BSelectImage = findViewById(R.id.BSelectImage);
@@ -82,6 +97,32 @@ public class MainActivity extends AppCompatActivity {
         IVPreviewImage = findViewById(R.id.IVPreviewImage);
         Rotate =findViewById(R.id.Rotate);
         Process =findViewById(R.id.Process);
+        cameraKitView = findViewById(R.id.camera);
+        cameraBtn = findViewById(R.id.cameraBtn);
+
+        progressBar = (ProgressBar)findViewById(R.id.spin_kit);
+        Sprite CubeGrid = new Wave();
+        progressBar.setIndeterminateDrawable(CubeGrid);
+
+
+
+
+        View.OnClickListener photoOnClickListener = new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                cameraKitView.captureImage(new CameraKitView.ImageCallback() {
+                    @Override
+                    public void onImage(CameraKitView cameraKitView, final byte[] photo) {
+                        Log.d(TAG, "onImage: ");
+                        Bitmap bitmap2 = BitmapFactory.decodeByteArray(photo,0,photo.length);
+                        runTextRecognition(bitmap2);
+
+                    }
+                });
+            }
+        };
+
+        cameraBtn.setOnClickListener(photoOnClickListener);
 
         // handle the Choose Image button to trigger
         // the image chooser function
@@ -100,7 +141,18 @@ public class MainActivity extends AppCompatActivity {
         BCaptureImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                cameraCapture();
+//                cameraCapture();
+//                Intent intent = new Intent(getApplicationContext(), Camerakit.class);
+//                startActivity(intent);
+                BSelectImage.setVisibility(View.INVISIBLE);
+                BCaptureImage.setVisibility(View.INVISIBLE);
+                IVPreviewImage.setVisibility(View.INVISIBLE);
+                Rotate.setVisibility(View.INVISIBLE);
+                Process.setVisibility(View.INVISIBLE);
+
+                cameraKitView.setVisibility(View.VISIBLE);
+                cameraBtn.setVisibility(View.VISIBLE);
+
 
 
             }
@@ -148,12 +200,14 @@ public class MainActivity extends AppCompatActivity {
 //                Log.d(TAG, "Firebase DATA Value is: " + value);
                 firebaseData  = (HashMap<String, Object>) dataSnapshot.getValue();
                 Log.d(TAG, "Value is: " + firebaseData);
+                progressBar.setVisibility(View.INVISIBLE);
             }
 
             @Override
             public void onCancelled(DatabaseError error) {
                 // Failed to read value
                 Log.w(TAG, "Firebase DATA Failed to read value.", error.toException());
+                progressBar.setVisibility(View.INVISIBLE);
             }
         });
     }
@@ -308,6 +362,44 @@ public class MainActivity extends AppCompatActivity {
         intent.putExtra("myfirebaseData", firebaseData);
         startActivity(intent);
     }
+
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        cameraKitView.onResume();
+
+        BSelectImage.setVisibility(View.VISIBLE);
+        BCaptureImage.setVisibility(View.VISIBLE);
+        IVPreviewImage.setVisibility(View.VISIBLE);
+        Rotate.setVisibility(View.VISIBLE);
+        Process.setVisibility(View.VISIBLE);
+
+        cameraKitView.setVisibility(View.INVISIBLE);
+        cameraBtn.setVisibility(View.INVISIBLE);
+    }
+
+    @Override
+    protected void onPause() {
+        cameraKitView.onPause();
+        BSelectImage.setVisibility(View.VISIBLE);
+        BCaptureImage.setVisibility(View.VISIBLE);
+        IVPreviewImage.setVisibility(View.VISIBLE);
+        Rotate.setVisibility(View.VISIBLE);
+        Process.setVisibility(View.VISIBLE);
+
+        cameraKitView.setVisibility(View.INVISIBLE);
+        cameraBtn.setVisibility(View.INVISIBLE);
+
+        super.onPause();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        cameraKitView.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
 
 
 }
